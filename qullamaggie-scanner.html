@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qullamaggie Breakout Scanner｜免費美股盤前突破掃描器</title>
+<meta name="description" content="開源免費嘅美股盤前掃描器，根據 Qullamaggie 突破方法論，每日掃描約 2,300 隻 NYSE／NASDAQ 股票，輸出深色篩選儀表板。">
+<style>
+:root{
+  --bg:#0a0e14; --bg2:#0f1520; --card:#131b29; --card2:#182233;
+  --line:#233044; --txt:#e8eef6; --mut:#93a3b8; --dim:#5d6f86;
+  --green:#22c55e; --red:#ef4444; --gold:#f5b942; --blue:#38bdf8; --purple:#a78bfa;
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang HK","Microsoft JhengHei",sans-serif;line-height:1.7}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+/* nav */
+nav{position:sticky;top:0;z-index:50;background:rgba(10,14,20,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;gap:18px;height:58px}
+.brand{font-weight:800;font-size:17px;letter-spacing:.3px;white-space:nowrap}
+.brand span{color:var(--gold)}
+.navlinks{display:flex;gap:4px;margin-left:auto;overflow-x:auto;scrollbar-width:none}
+.navlinks a{color:var(--mut);font-size:13.5px;padding:8px 10px;white-space:nowrap;border-radius:8px}
+.navlinks a:hover{color:var(--txt);background:var(--card);text-decoration:none}
+/* hero */
+.hero{padding:72px 0 56px;background:radial-gradient(900px 420px at 50% -60px,rgba(245,185,66,.10),transparent 70%),radial-gradient(700px 380px at 85% 10px,rgba(56,189,248,.08),transparent 70%)}
+.kicker{display:inline-block;font-size:12.5px;color:var(--gold);border:1px solid rgba(245,185,66,.4);border-radius:999px;padding:5px 14px;margin-bottom:18px;letter-spacing:1px}
+h1{font-size:clamp(30px,5vw,46px);line-height:1.25;font-weight:800;margin-bottom:14px}
+h1 .hl{color:var(--gold)}
+.sub{color:var(--mut);font-size:16.5px;max-width:720px;margin-bottom:26px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px}
+.badge{font-size:12.5px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 13px;color:var(--mut)}
+.badge b{color:var(--txt);font-weight:600}
+.btns{display:flex;flex-wrap:wrap;gap:12px}
+.btn{display:inline-block;padding:12px 26px;border-radius:10px;font-weight:700;font-size:15px;border:1px solid transparent;cursor:pointer}
+.btn:hover{text-decoration:none;transform:translateY(-1px)}
+.btn-gold{background:var(--gold);color:#14100a}
+.btn-ghost{background:transparent;border-color:var(--line);color:var(--txt)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:44px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 16px;text-align:center}
+.stat .n{font-size:26px;font-weight:800;color:var(--gold)}
+.stat .l{font-size:12.5px;color:var(--mut);margin-top:4px}
+/* sections */
+section{padding:56px 0}
+.sec-title{font-size:26px;font-weight:800;margin-bottom:8px}
+.sec-title .dot{color:var(--gold)}
+.sec-sub{color:var(--mut);margin-bottom:30px;max-width:760px}
+.alt{background:var(--bg2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+/* factor cards */
+.factors{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.factor{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;cursor:pointer;transition:border-color .2s}
+.factor:hover{border-color:var(--gold)}
+.factor.open{border-color:var(--gold)}
+.factor h3{font-size:17px;margin-bottom:4px;display:flex;align-items:center;gap:10px}
+.factor .icon{font-size:22px}
+.factor .en{font-size:12px;color:var(--dim);font-weight:400}
+.factor .tag{font-size:12px;color:var(--mut);margin-bottom:10px}
+.factor .detail{display:none;margin-top:10px;padding-top:12px;border-top:1px dashed var(--line);font-size:14px;color:var(--mut)}
+.factor.open .detail{display:block}
+.factor .detail b{color:var(--txt)}
+.factor .more{font-size:12.5px;color:var(--gold);margin-top:8px}
+/* flow */
+.flow{display:flex;flex-direction:column;gap:0;max-width:640px;margin:0 auto}
+.fstep{display:flex;gap:16px;align-items:flex-start}
+.fstep .num{flex:0 0 38px;height:38px;border-radius:50%;background:var(--card2);border:1px solid var(--gold);color:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:800}
+.fstep .body{padding-bottom:26px;position:relative}
+.fstep .body::before{content:"";position:absolute;left:-35px;top:42px;bottom:0;width:2px;background:var(--line)}
+.fstep:last-child .body::before{display:none}
+.fstep h4{font-size:16px;margin-bottom:4px}
+.fstep p{font-size:14px;color:var(--mut)}
+/* features */
+.feats{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.feat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+.feat .i{font-size:26px;margin-bottom:10px}
+.feat h4{font-size:15.5px;margin-bottom:6px}
+.feat p{font-size:13.5px;color:var(--mut)}
+/* code */
+pre{background:#070b11;border:1px solid var(--line);border-radius:10px;padding:16px 18px;overflow-x:auto;font-size:13.5px;line-height:1.65;margin:12px 0;color:#c9d6e8}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.cmd{color:var(--gold)}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:14px 0}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{color:var(--gold);font-size:13px;letter-spacing:.5px}
+td{color:var(--mut)}
+td:first-child{color:var(--txt);font-weight:600}
+/* demo */
+.demo-controls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px;align-items:center}
+.demo-controls select,.demo-controls input{background:var(--card);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:9px 12px;font-size:14px}
+.demo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.scard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;position:relative}
+.scard .tick{font-size:18px;font-weight:800}
+.scard .name{font-size:12.5px;color:var(--dim)}
+.scard .price{font-size:20px;font-weight:700;margin:8px 0 2px}
+.scard .chg{font-size:13px;font-weight:700}
+.up{color:var(--green)} .down{color:var(--red)}
+.scard .lvl{font-size:12px;color:var(--gold);margin-top:6px}
+.fbars{margin-top:10px;display:grid;gap:6px}
+.fbar{display:flex;align-items:center;gap:8px;font-size:12px}
+.fbar .fl{width:86px;color:var(--dim);flex-shrink:0}
+.fbar .track{flex:1;height:7px;background:#0a0f16;border-radius:4px;overflow:hidden}
+.fbar .fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--blue),var(--gold))}
+.fbar .fv{width:34px;text-align:right;color:var(--mut)}
+.newbadge{position:absolute;top:12px;right:12px;font-size:11px;background:var(--green);color:#06120a;font-weight:800;border-radius:6px;padding:2px 8px}
+/* faq */
+.faq{border:1px solid var(--line);border-radius:var(--radius);margin-bottom:10px;background:var(--card);overflow:hidden}
+.faq summary{padding:16px 20px;cursor:pointer;font-weight:700;font-size:15px;list-style:none}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";float:right;color:var(--gold);font-size:20px}
+.faq[open] summary::after{content:"−"}
+.faq .ans{padding:0 20px 18px;font-size:14px;color:var(--mut)}
+/* disclaimer */
+.warn{background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.35);border-radius:var(--radius);padding:20px 22px;font-size:14px;color:var(--mut)}
+.warn b{color:var(--red)}
+footer{border-top:1px solid var(--line);padding:36px 0 60px;color:var(--dim);font-size:13px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:center}
+@media(max-width:640px){.navlinks{display:none}.hero{padding:48px 0 40px}}
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <div class="brand">📈 Qullamaggie<span> Scanner</span></div>
+  <div class="navlinks">
+    <a href="#method">方法論</a><a href="#factors">六大因子</a><a href="#flow">運作流程</a><a href="#demo">模擬儀表板</a><a href="#usage">使用指南</a><a href="#faq">常見問題</a>
+  </div>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <div class="kicker">免費 · 開源 · 無需 API KEY</div>
+  <h1>Qullamaggie <span class="hl">Breakout Scanner</span><br>美股盤前突破掃描器</h1>
+  <p class="sub">根據傳奇交易員 Kristjan Kullamägi（Qullamaggie）嘅突破方法論，每朝早市前自動掃描全 NYSE＋NASDAQ 約 2,300 隻高流動性股票，用 6 大因子類別逐隻評分，輸出一個深色、可篩選嘅 HTML 儀表板。唔使付費數據、唔使 API key、唔使伺服器——跑完開嚟睇就得。</p>
+  <div class="badges">
+    <span class="badge"><b>Python 3.10+</b></span>
+    <span class="badge">數據源 <b>yfinance（免費）</b></span>
+    <span class="badge">股票池 <b>~2,300 隻</b></span>
+    <span class="badge">授權 <b>MIT</b></span>
+    <span class="badge">作者 <b>VladPetrariu</b></span>
+  </div>
+  <div class="btns">
+    <a class="btn btn-gold" href="https://github.com/VladPetrariu/Qullamaggie-breakout-scanner" target="_blank" rel="noopener">去 GitHub 睇源碼</a>
+    <a class="btn btn-ghost" href="#usage">快速開始 ↓</a>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="n">~2,300</div><div class="l">每朝掃描股票數</div></div>
+    <div class="stat"><div class="n">6</div><div class="l">因子類別</div></div>
+    <div class="stat"><div class="n">~12 秒</div><div class="l">有快取時掃描時間</div></div>
+    <div class="stat"><div class="n">0</div><div class="l">所需 API key 數目</div></div>
+  </div>
+</div></header>
+
+<section id="method"><div class="wrap">
+  <h2 class="sec-title"><span class="dot">●</span> 咩係 Qullamaggie 方法論？</h2>
+  <p class="sec-sub">Kristjan Kullamägi（網名 Qullamaggie）係近年最受關注嘅動量交易員之一，以捕捉股票「突破」——股價喺沉寂一段時間後突然向上爆發——見稱。佢嘅方法唔係靠內幕，而係靠一套可重複嘅 checklist：</p>
+  <div class="feats">
+    <div class="feat"><div class="i">🌊</div><h4>順勢而為</h4><p>只喺大市健康嗰陣出手；大市轉弱嗰陣，好圖表都會失敗。掃描器用 5 個大市闊度指標將市況分為有利／混雜／謹慎／避險四級。</p></div>
+    <div class="feat"><div class="i">⚡</div><h4>催化劑先行</h4><p>突破之前通常有「原因」——成交量突然放大 3 倍以上，代表有資金入場。掃描器會偵測呢啲日子，再計催化劑有幾「新鮮」。</p></div>
+    <div class="feat"><div class="i">🌀</div><h4>整固如彈簧</h4><p>大升之後嘅橫行整固越窄、越乾淨，下一次突破越爆。掃描器量度區間闊窄、K 線質素、均線排列。</p></div>
+    <div class="feat"><div class="i">💪</div><h4>相對強度</h4><p>大市橫行但隻股靜靜雞升，代表背後有需求。掃描器將每隻股嘅強度同成個股票池＋SPY＋行業 ETF 比較。</p></div>
+  </div>
+  <p style="margin-top:22px;color:var(--mut);font-size:14.5px">💡 <b style="color:var(--txt)">設計哲學：</b>掃描器只負責整理功課——畀原始數值，唔畀綜合評分，唔畀買賣訊號。<b style="color:var(--txt)">決定永遠係你自己做。</b></p>
+</div></section>
+
+<section id="factors" class="alt"><div class="wrap">
+  <h2 class="sec-title"><span class="dot">●</span> 六大因子類別 <span style="font-size:14px;color:var(--dim);font-weight:400">（撳入睇詳情）</span></h2>
+  <p class="sec-sub">每隻股票都會經過以下六組因子分析，結果直接顯示喺儀表板卡片上，用顏色標示質素。</p>
+  <div class="factors" id="factorGrid"></div>
+</div></section>
+
+<section id="flow"><div class="wrap">
+  <h2 class="sec-title"><span class="dot">●</span> 運作流程</h2>
+  <p class="sec-sub">由數據抓取到交易訊號，一條完整流水線，全部喺你部機本地運行。</p>
+  <div class="flow">
+    <div class="fstep"><div class="num">1</div><div class="body"><h4>股票池建立</h4><p>由 SEC EDGAR 拎齊 NYSE＋NASDAQ 所有 ticker，過濾到 $5 以上、20 日平均成交量 50 萬股以上，剩低約 2,300 隻夠流動性嘅股。</p></div></div>
+    <div class="fstep"><div class="num">2</div><div class="body"><h4>下載行情數據</h4><p>經 yfinance（Yahoo Finance，免費）分批下載一年日線 OHLCV；Parquet 本地快取，16 小時先更新一次，快取命中時成個掃描只係約 12 秒。</p></div></div>
+    <div class="fstep"><div class="num">3</div><div class="body"><h4>大市把關</h4><p>先計大市處境：闊度指標、VIX、突破跟進率。若判定為 Risk Off（避險），直接壓制輸出——唔畀你喺壞市況亂嚟。</p></div></div>
+    <div class="fstep"><div class="num">4</div><div class="body"><h4>六因子分析</h4><p>每隻股計催化劑、成交量、整固、相對強度、突破位、週線共振六組數值。</p></div></div>
+    <div class="fstep"><div class="num">5</div><div class="body"><h4>四層排序</h4><p>按實證排序：多因子組合質素 → 高低點結構（HH/HL）→ ATR 收縮 → 突破位距離，排出一張 watchlist。</p></div></div>
+    <div class="fstep"><div class="num">6</div><div class="body"><h4>輸出儀表板＋訊號</h4><p>生成單文件深色 HTML（離線都開到）＋ JSON；同時寫出交易訊號（入場／止蝕／倉位，1% 風險 sizing）畀紙交易模擬器用。</p></div></div>
+  </div>
+</div></section>
+
+<section id="demo" class="alt"><div class="wrap">
+  <h2 class="sec-title"><span class="dot">●</span> 模擬儀表板預覽</h2>
+  <p class="sec-sub">真實掃描器會輸出類似下面嘅卡片（可搜尋、篩選、排序）。呢度係示意數據，等你感受下個版面——撳 ticker 可直達 TradingView 圖表。</p>
+  <div class="demo-controls">
+    <input id="q" placeholder="🔍 搜尋 ticker…（撳 / 聚焦）" style="min-width:220px">
+    <select id="sortSel">
+      <option value="rs">排序：相對強度</option>
+      <option value="vol">排序：成交量步伐</option>
+      <option value="cat">排序：催化劑新鮮度</option>
+      <option value="atr">排序：ATR 收縮</option>
+    </select>
+    <select id="lvlSel">
+      <option value="">全部突破位</option>
+      <option>歷史新高</option><option>多年高位</option><option>52 週高位</option><option>前期阻力</option>
+    </select>
+  </div>
+  <div class="demo-grid" id="demoGrid"></div>
+  <p style="margin-top:14px;font-size:12.5px;color:var(--dim)">⚠️ 示意數據，唔係真實掃描結果，亦唔構成任何投資建議。</p>
+</div></section>
+
+<section id="usage"><div class="wrap">
+  <h2 class="sec-title"><span class="dot">●</span> 使用指南</h2>
+  <p class="sec-sub">開源 MIT 授權，任何人都可以免費下載使用。以下係基本安裝同常用模式。</p>
+  <h3 style="margin:18px 0 6px;font-size:18px">快速開始</h3>
+<pre><code><span class="cmd">git clone</span> https://github.com/VladPetrariu/Qullamaggie-breakout-scanner.git
+<span class="cmd">cd</span> Qullamaggie-breakout-scanner
+python -m venv .venv && <span class="cmd">source</span> .venv/bin/activate
+pip install -r requirements.txt
+python -m scanner   <span style="color:var(--dim)"># 跑完自動開 scans/scan_YYYY-MM-DD.html</span></code></pre>
+  <table>
+    <tr><th>指令</th><th>用途</th></tr>
+    <tr><td><code>python -m scanner --watch</code></td><td>盤中監控：輪詢報價，接近突破位時 macOS 通知</td></tr>
+    <tr><td><code>python -m scanner --backtest</code></td><td>Walk-forward 回測：驗證排名喺歷史數據嘅表現</td></tr>
+    <tr><td><code>python -m scanner --signals</code></td><td>打印今日可執行訊號（入場／止蝕／倉位大小）</td></tr>
+    <tr><td><code>python -m scanner --paper</code></td><td>紙交易模擬：用真實翌日數據計 P&amp;L，唔使券商戶口</td></tr>
+    <tr><td><code>python -m scanner --paper-report</code></td><td>完整紙戶口報告：統計、訊號漏斗、go-live 門檻</td></tr>
+    <tr><td><code>python -m scanner --no-open</code></td><td>唔自動開瀏覽器（畀 cron／launchd 定時用）</td></tr>
+  </table>
+  <h3 style="margin:22px 0 6px;font-size:18px">每日自動運行（macOS）</h3>
+<pre><code>./scripts/install_automation.sh   <span style="color:var(--dim)"># launchd：逢交易日朝早 5:45 自動掃描＋紙模擬</span></code></pre>
+  <h3 style="margin:22px 0 6px;font-size:18px">主要配置（scanner/config.py）</h3>
+  <table>
+    <tr><th>參數</th><th>預設</th><th>用途</th></tr>
+    <tr><td><code>MIN_PRICE</code></td><td>$5</td><td>最低股價</td></tr>
+    <tr><td><code>MIN_AVG_VOLUME</code></td><td>500K</td><td>20 日平均最低成交量</td></tr>
+    <tr><td><code>VOLUME_SPIKE_THRESHOLD</code></td><td>3.0x</td><td>催化劑成交量倍數</td></tr>
+    <tr><td><code>EMA_PERIODS</code></td><td>10, 20, 50</td><td>均線排列週期</td></tr>
+    <tr><td><code>CACHE_PRICES_TTL_HOURS</code></td><td>16</td><td>行情快取有效時數</td></tr>
+  </table>
+  <h3 style="margin:22px 0 6px;font-size:18px">數據來源（全部免費）</h3>
+  <table>
+    <tr><th>數據</th><th>來源</th></tr>
+    <tr><td>股票全集</td><td>SEC EDGAR（company_tickers_exchange.json）</td></tr>
+    <tr><td>股價＋成交量</td><td>yfinance（Yahoo Finance）</td></tr>
+  </table>
+</div></section>
+
+<section id="features"><div class="wrap">
+  <h2 class="sec-title"><span class="dot">●</span> 功能一覽</h2>
+  <div class="feats">
+    <div class="feat"><div class="i">🌐</div><h4>全股票池覆蓋</h4><p>SEC EDGAR 全 ticker＋流動性過濾，唔會漏咗冷門爆發股。</p></div>
+    <div class="feat"><div class="i">🛡️</div><h4>大市處境把關</h4><p>Risk Off 直接壓制輸出，幫你避開壞市況硬 trade。</p></div>
+    <div class="feat"><div class="i">🌙</div><h4>深色儀表板</h4><p>單文件 HTML、離線開到；按行業、均線、催化劑、突破位篩選，撳 <code>/</code> 即搜尋。</p></div>
+    <div class="feat"><div class="i">🔗</div><h4>直達 TradingView</h4><p>每個 ticker 撳入即開對應圖表，功課流程一氣呵成。</p></div>
+    <div class="feat"><div class="i">🆕</div><h4>歷史對比</h4><p>NEW 徽章＋排名升跌箭嘴，同尋日結果自動對比。</p></div>
+    <div class="feat"><div class="i">📝</div><h4>紙交易驗證</h4><p>訊號 sizing（1% 風險）＋本地成交模擬，用真實翌日數據計 P&amp;L，落真錢之前先驗證。</p></div>
+    <div class="feat"><div class="i">🔒</div><h4>離線＋私隱</h4><p>全部本地運行，數據唔離開你部機。</p></div>
+    <div class="feat"><div class="i">🧪</div><h4>回測引擎</h4><p>Walk-forward、多窗口穩健性測試、離場策略模擬，一應俱全。</p></div>
+  </div>
+</div></section>
+
+<section id="faq" class="alt"><div class="wrap">
+  <h2 class="sec-title"><span class="dot">●</span> 常見問題</h2>
+  <div class="faq"><summary>要唔要畀錢／申請 API key？</summary><div class="ans">唔使。數據來自 SEC EDGAR（公開）同 yfinance（Yahoo Finance 免費接口），成個項目零成本運行。</div></div>
+  <div class="faq"><summary>第一次跑要幾耐？</summary><div class="ans">第一次要下載 7,000+ 隻股一年日線數據，大約 4 分鐘。之後靠本地 Parquet 快取（16 小時 TTL），一般約 12 秒完成。</div></div>
+  <div class="faq"><summary>掃描器會唔會直接叫我買／賣？</summary><div class="ans">唔會。佢只輸出原始因子數值同排名，唔做綜合評分、唔畀買賣訊號。交易決定永遠係你自己嘅責任。</div></div>
+  <div class="faq"><summary>支援港股／A股嗎？</summary><div class="ans">原生設計係 NYSE＋NASDAQ 美股。源碼開源（MIT），有 Python 能力嘅可以自己改 universe.py 同數據源去支援其他市場。</div></div>
+  <div class="faq"><summary>部機要長開嗎？</summary><div class="ans">唔使。macOS 可用 launchd 設逢交易日 5:45 自動跑；就算部機瞓著咗，下次醒來會補跑，紙模擬冪等唔會重複計。</div></div>
+  <div class="faq"><summary>呢個網站同原項目咩關係？</summary><div class="ans">呢個係介紹網站，方便手機／分享瀏覽；真正嘅掃描器要喺電腦裝 Python 跑。源碼同授權歸原作者 VladPetrariu（MIT License），方法論歸 Kristjan Kullamägi。</div></div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="warn"><b>⚠️ 風險聲明：</b>本網站僅介紹開源項目，不構成任何投資建議、要約或招攬。掃描器識別嘅係「有統計優勢嘅形態」，唔保證盈利；動量突破交易風險極高，可導致本金大幅虧損。任何交易決定請自行負責，並考慮諮詢持牌專業人士。</div>
+</div></section>
+
+<footer><div class="wrap">
+  <div>📈 Qullamaggie Breakout Scanner 介紹站 · 開源項目：<a href="https://github.com/VladPetrariu/Qullamaggie-breakout-scanner" target="_blank" rel="noopener">VladPetrariu/Qullamaggie-breakout-scanner</a>（MIT）· 方法論：Kristjan Kullamägi（@Qullamaggie）</div>
+  <div>數據源：SEC EDGAR ＋ yfinance · 本頁為非官方介紹，示意數據並非真實掃描結果</div>
+</div></footer>
+
+<script>
+const FACTORS=[
+ {icon:"⚡",name:"催化劑",en:"Catalyst",tag:"有冇「原因」令隻股郁？",
+  d:"偵測成交量 <b>3 倍以上</b>嘅日子作為催化劑代理訊號，再用<b>半衰期新鮮度評分</b>計佢有幾新。越新鮮嘅催化劑，突破跟進率越高。"},
+ {icon:"📊",name:"成交量",en:"Volume",tag:"資金係咪真係入緊場？",
+  d:"<b>成交量步伐</b>（今日相對 50 日平均）、<b>旗形成交量收縮</b>形態、同埋 <b>ABR 距離突破位</b>。健康嘅整固應該見到成交量逐步萎縮——代表沽壓乾塘。"},
+ {icon:"🌀",name:"整固",en:"Consolidation",tag:"彈簧㩒得有幾緊？",
+  d:"<b>EMA 排列</b>（10/20/50 順排）、<b>價格結構</b>（更高高點 HH／更高低點 HL）、<b>K 線質素</b>、<b>旗杆＋旗形</b>、<b>ATR 收縮</b>。區間越窄越乾淨，突破越爆。"},
+ {icon:"💪",name:"相對強度",en:"Relative Strength",tag:"係咪跑贏大市？",
+  d:"用 <b>ATR 標準化百分位</b>同成個股票池比較，另計 <b>5 日方向</b>、相對 <b>SPY</b> 同<b>行業 ETF</b> 嘅強度。大市悶但佢靜靜升＝背後有需求。"},
+ {icon:"🎯",name:"突破位",en:"Breakout Level",tag:"邊個位係戰場？",
+  d:"分級：<b>歷史新高 ATH</b>（最強，上面冇蟹貨）＞ <b>多年高位</b> ＞ <b>52 週高位</b> ＞ <b>前期阻力</b>。級數越高，突破後阻力越少。"},
+ {icon:"📅",name:"週線共振",en:"Weekly Confluence",tag:"大週期認唔認同？",
+  d:"將日線重採樣做週線，睇週線係咪<b>同時</b>喺整固／突破。日線＋週線齊共振嗰陣，波幅通常大好多。"}
+];
+const fg=document.getElementById('factorGrid');
+FACTORS.forEach((f,i)=>{
+  const el=document.createElement('div');el.className='factor';
+  el.innerHTML=`<h3><span class="icon">${f.icon}</span>${f.name} <span class="en">${f.en}</span></h3><div class="tag">${f.tag}</div><div class="detail">${f.d}</div><div class="more">＋ 撳我展開</div>`;
+  el.onclick=()=>{el.classList.toggle('open');el.querySelector('.more').textContent=el.classList.contains('open')?'－ 撳我收起':'＋ 撳我展開';};
+  fg.appendChild(el);
+});
+
+/* demo scan cards (illustrative) */
+const LVLS=["歷史新高","多年高位","52 週高位","前期阻力"];
+const SECTORS=["科技","醫療","工業","能源","金融","消費"];
+const STOCKS=[
+ ["NVDA","NVIDIA",187.42],["TSLA","Tesla",248.90],["AMD","Advanced Micro",164.33],["PLTR","Palantir",52.18],
+ ["COIN","Coinbase",284.55],["MSTR","Strategy",398.20],["SMCI","Super Micro",42.77],["ASTS","AST SpaceMobile",58.34],
+ ["RKLB","Rocket Lab",18.92],["HOOD","Robinhood",112.64],["SOFI","SoFi",16.48],["DKNG","DraftKings",38.21]
+];
+let seed=42;function rnd(){seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff;}
+const cards=STOCKS.map((s,i)=>{
+  const chg=((rnd()*14)-3);const lvl=LVLS[Math.floor(rnd()*4)];
+  return {tick:s[0],name:s[1],price:s[2],chg:chg,lvl:lvl,sector:SECTORS[Math.floor(rnd()*6)],
+    rs:Math.round(60+rnd()*39),vol:Math.round((1+rnd()*4)*10)/10,cat:Math.round(rnd()*100),atr:Math.round(30+rnd()*65),
+    isNew:rnd()>0.72};
+});
+function renderDemo(){
+  const q=document.getElementById('q').value.trim().toUpperCase();
+  const sortK=document.getElementById('sortSel').value;
+  const lvlF=document.getElementById('lvlSel').value;
+  let list=cards.filter(c=>(!q||c.tick.includes(q)||c.name.toUpperCase().includes(q))&&(!lvlF||c.lvl===lvlF));
+  const key={rs:'rs',vol:'vol',cat:'cat',atr:'atr'}[sortK];
+  list.sort((a,b)=>b[key]-a[key]);
+  const g=document.getElementById('demoGrid');g.innerHTML='';
+  if(!list.length){g.innerHTML='<p style="color:var(--dim)">冇符合條件嘅股票，試下放寬篩選。</p>';return;}
+  list.forEach(c=>{
+    const up=c.chg>=0;
+    const el=document.createElement('div');el.className='scard';
+    el.innerHTML=`${c.isNew?'<span class="newbadge">NEW</span>':''}
+      <div><a class="tick" href="https://www.tradingview.com/chart/?symbol=${c.tick}" target="_blank" rel="noopener">${c.tick}</a> <span class="name">${c.name} · ${c.sector}</span></div>
+      <div class="price">$${c.price.toFixed(2)} <span class="chg ${up?'up':'down'}">${up?'▲':'▼'} ${Math.abs(c.chg).toFixed(2)}%</span></div>
+      <div class="lvl">🎯 ${c.lvl}</div>
+      <div class="fbars">
+        ${bar('相對強度',c.rs)}${bar('成交量步伐',Math.min(100,c.vol*22),c.vol.toFixed(1)+'x')}${bar('催化劑新鮮度',c.cat)}${bar('ATR 收縮',c.atr)}
+      </div>`;
+    g.appendChild(el);
+  });
+  function bar(l,v,t){return `<div class="fbar"><span class="fl">${l}</span><span class="track"><span class="fill" style="width:${Math.min(100,v)}%"></span></span><span class="fv">${t||Math.round(v)}</span></div>`;}
+}
+['q','sortSel','lvlSel'].forEach(id=>document.getElementById(id).addEventListener('input',renderDemo));
+document.addEventListener('keydown',e=>{if(e.key==='/'&&document.activeElement.tagName!=='INPUT'){e.preventDefault();document.getElementById('q').focus();}});
+renderDemo();
+</script>
+</body>
+</html>
